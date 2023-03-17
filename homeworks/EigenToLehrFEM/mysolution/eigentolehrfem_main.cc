@@ -107,13 +107,14 @@ Eigen::VectorXd solveReactionDiffusion() {
     auto fe_space =
         std::make_shared<lf::uscalfe::FeSpaceLagrangeO1<double>>(mesh_p);
     // TODO: 1.1 Get a const reference to the mesh *from the fe_space variable*.
-    //    const lf::mesh::Mesh &mesh
+    const lf::mesh::Mesh &mesh = *fe_space->Mesh();
+
 
     // TODO: 1.2 Get the dof handler of the finite element space.
-    //    const lf::assemble::DofHandler &dofh
+    const lf::assemble::DofHandler &dofh = fe_space->LocGlobMap();
 
     // TODO: 1.3 Get the dimension of the finite element space.
-    //    const lf::base::size_type N_dofs
+    const lf::base::size_type N_dofs = dofh.NumDofs();
 
     // TODO 2.1: Replace the element matrix provider with a lehrfem++ implementation
 
@@ -122,22 +123,31 @@ Eigen::VectorXd solveReactionDiffusion() {
     //  a(u,v) = \int_{\Omega} grad(u)*grad(v) + uv dx
     //  Hint: You'll need to create two MeshFunctionGlobal elements for
     //  constructing this object.
+    //  using the basic function then defiine funtion for gamma and alpha
+    auto alpha = [](Eigen::Vector2d x){return 1.;};
+    auto gamma = [](Eigen::Vector2d x){return 1.;};
+    lf::mesh::utils::MeshFunctionGlobal mf_alpha(alpha);
+    lf::mesh::utils::MeshFunctionGlobal mf_gamma(gamma);
+    lf::uscalfe::ReactionDiffusionElementMatrixProvider elmat_provider(fe_space, mf_alpha, mf_gamma);
 
 
     // TODO 2.2: Replace the Galerkin matrix assembly with a lehrfem++ implementation
     // ---- 2.2 START ----
 
+
     // TODO 2.2.1: Replace the triplets with the lehrfem++ assembly COO matrix
-    std::vector<Eigen::Triplet<double>> triplets;
+    //std::vector<Eigen::Triplet<double>> triplets;
+    lf::assemble::COOMatrix<double> A(N_dofs, N_dofs);
 
     // TODO 2.2.2: Replace the for loop with a lehrfem++ assembly of the Galerkin matrix
     //   And make the COO matrix a sparse eigen matrix.
     //  Hint: Look at the lf::assemble namespace.
     //   You have to use one of its functions.
     //  Test your code once you're done!
+    lf::assemble::AssembleMatrixLocally(0, dofh, dofh, elmat_provider, A);
+    Eigen::SparseMatrix<double> A_crs = A.makeSparse();
 
-
-    for (const lf::mesh::Entity* triangle : mesh.Entities(0)) {
+    /*for (const lf::mesh::Entity* triangle : mesh.Entities(0)) {
         // TODO 1.4: Get the corners of the triangle
         // Hint: look at the geometry::Corners function.
         Eigen::MatrixXd corners;
@@ -156,11 +166,11 @@ Eigen::VectorXd solveReactionDiffusion() {
                 // A(global_i, global_j) += A_k(i,j)
             }
         }
-    }
+    }*/
 
-    Eigen::SparseMatrix<double> A_crs(N_dofs, N_dofs);
+    /*Eigen::SparseMatrix<double> A_crs(N_dofs, N_dofs);
     A_crs.setFromTriplets(triplets.begin(), triplets.end());
-    A_crs.makeCompressed();
+    A_crs.makeCompressed();*/
 
     // ---- 2.2 END ----
 
@@ -179,11 +189,17 @@ Eigen::VectorXd solveReactionDiffusion() {
     //  Hint:  You'll need to create a MeshFunctionGlobal element for
     //   constructing this object.
 
+    lf::mesh::utils::MeshFunctionGlobal mf_f(f);
+    lf::fe::ScalarLoadElementVectorProvider elvec_provider(fe_space, mf_f);
+
     // TODO: 2.3.2: Replace the for loop with a lehrfem++ assembly of the Load Vector
     //  Test your code once you're done!
     //  Q: Why is there a difference in the output plot?
+    //  0 means we iterate through the topmost layer
+    lf::assemble::AssembleVectorLocally(0, dofh, elvec_provider, phi);
 
-    for (const lf::mesh::Entity* triangle : mesh.Entities(0)) {
+
+    /*for (const lf::mesh::Entity* triangle : mesh.Entities(0)) {
         // TODO 1.7: Get the corners of the triangle
 
         Eigen::VectorXd phi_k = getElementVector(corners, f);
@@ -193,7 +209,7 @@ Eigen::VectorXd solveReactionDiffusion() {
         for (int i = 0; i < 3; i++) {
             // TODO 1.9: phi(global_i) = phi_k(i)
         }
-    }
+    }*/
 
     // Solution vector
     Eigen::VectorXd sol_vec = Eigen::VectorXd::Zero(N_dofs);
