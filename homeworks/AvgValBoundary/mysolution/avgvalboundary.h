@@ -88,9 +88,10 @@ template <typename FUNCTION>
 double compBoundaryFunctional(const lf::assemble::DofHandler &dofh,
                               const Eigen::VectorXd &u, FUNCTION &&w) {
   double result = 0.0;
-  //====================
-  // Your code goes here
-  //====================
+
+  auto const_zero = [](Eigen::Vector2d x) -> double {return 0.0;};
+  auto A = compGalerkinMatrix(dofh, const_zero, const_zero, std::forward<FUNCTION>(w));
+
   return result;
 }
 /* SAM_LISTING_END_2 */

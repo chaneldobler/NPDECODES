@@ -29,12 +29,17 @@ namespace AvgValBoundary {
  *        u coefficient vector
  */
 /* SAM_LISTING_BEGIN_1 */
+// computes the H1 norm for a function v in nodal basis
 double compH1seminorm(const lf::assemble::DofHandler &dofh,
                       const Eigen::VectorXd &u) {
   double result = 0.0;
-  //====================
-  // Your code goes here
-  //====================
+
+  auto const_one = [](Eigen::Vector2d x) -> double {return 1.0;};
+  auto const_zero = [](Eigen::Vector2d x) -> double {return 0.0;};
+  auto A = compGalerkinMatrix(dofh, const_one, const_zero, const_zero);
+
+  result = u.transpose() * A * u;
+  result = std::sqrt(result);
   return result;
 }
 /* SAM_LISTING_END_1 */
