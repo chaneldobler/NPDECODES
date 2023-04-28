@@ -101,9 +101,26 @@ Eigen::VectorXd solveMixedBVP(
   Eigen::VectorXd phi(N_dofs);
   // Assembly of Galerkin matrix and right-hand side vector plus
   // special treatment of dofs at contacts
-  //====================
-  // Your code goes here
-  //====================
+
+  lf::uscalfe::ReactionDiffusionElementMatrixProvider<
+      double, decltype(mf_sigma), decltype(mf_gamma)>
+      elmat_builder(fe_space, mf_sigma, mf_gamma);
+  // Cell-oriented assembly
+  lf::assemble::AssembleMatrixLocally(0, dofh, dofh, elmat_builder, A);
+  // Right-hand side vector is zero
+  phi.setZero();
+  // Number of Dirichlet boundary parts
+  const int NContacts = voltvals.size();
+  // Selector functor for Dirichlet data
+  auto selector = [&](lf::assemble::gdof_idx_t idx) -> std::pair<bool, double> {
+    const lf::mesh::Entity &node{dofh.Entity(idx)};
+    const int ids = nodeflags(node);
+    if ((ids >= 0) && (ids < NContacts)) return {true, voltvals[ids]};
+    return {false, 42.0};
+  };
+  // Eliminate Dirichlet dofs from linear system
+  lf::assemble::FixFlaggedSolutionComponents<double>(selector, A, phi);
+
   // Assembly completed: Convert COO matrix A into CRS format using Eigen's
   // internal conversion routines.
   const Eigen::SparseMatrix<double> A_crs = A.makeSparse();
