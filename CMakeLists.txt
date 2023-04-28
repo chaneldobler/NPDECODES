@@ -26,7 +26,7 @@ CHECK_CXX_COMPILER_FLAG(-Wall COMPILER_SUPPORTS_WALL)
 CHECK_CXX_COMPILER_FLAG(-Wextra COMPILER_SUPPORTS_WEXTRA)
 CHECK_CXX_COMPILER_FLAG(-Wconversion COMPILER_SUPPORTS_WCONVERSION)
 
-add_library(warning_flags INTERFACE)
+add_library(warning_flags INTERFACE ../../../heatevolutionanimation.cc)
 if(COMPILER_SUPPORTS_WALL)
   target_compile_options(warning_flags INTERFACE -Wall)
 endif()
